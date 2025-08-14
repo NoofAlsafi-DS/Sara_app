@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# Auto-generated app with URLFeatureExtractor from the training notebook
-
 import os
 import pickle
 import numpy as np
@@ -63,9 +61,33 @@ def get_positive_prob(model, X):
             return float(1.0 / (1.0 + np.exp(-val[0])))
     return None
 
-st.set_page_config(page_title="🔒 الأمان الذكي", page_icon="🛡️", layout="centered")
-st.title("🔒 الأمان الذكي")
-st.caption("هذا التطبيق يساعدك في التحقق من الراوبط الضارة والروابط الموثوقة")
+st.set_page_config(page_title="🔒 URL Malware Detector", page_icon="🛡️", layout="centered")
+st.title("🔒 URL Malware Detector")
+st.caption("تحليل الروابط لاكتشاف الروابط الضارة باستخدام TF-IDF + ميزات يدوية + نموذج مدرّب.")
+
+# Sidebar examples
+with st.sidebar:
+    st.subheader("أمثلة جاهزة")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🔗 مثال موقع سليم", use_container_width=True):
+            st.session_state['sample_url'] = "https://www.wikipedia.org/"
+    with col_b:
+        if st.button("⚠️ مثال موقع ضار", use_container_width=True):
+            st.session_state['sample_url'] = "http://paypal.com.security-alert.example.com/confirm%20info"
+    st.caption("اضغط زرًا لملء الحقل تلقائيًا.")
+
+# Default text uses session value if present
+default_text = st.session_state.get('sample_url', 'https://www.wikipedia.org/')
+url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...")
+
+# ===== أمثلة جاهزة =====
+with st.sidebar:
+    st.subheader("أمثلة جاهزة")
+    if st.button("🔗 مثال موقع سليم"):
+        st.session_state['sample_url'] = "https://www.wikipedia.org/"
+    if st.button("⚠️ مثال موقع ضار"):
+        st.session_state['sample_url'] = "http://paypal.com.security-alert.example.com/confirm%20info"
 
 default_text = st.session_state.get('sample_url', 'https://www.wikipedia.org/')
 url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...")
@@ -110,4 +132,3 @@ if st.button("تحليل 🔍", type="primary") and url.strip():
 
 st.markdown("---")
 st.caption("© 2025 — للاستخدام التعليمي فقط.")
-
