@@ -79,6 +79,12 @@ with st.sidebar:
 
 # Default text uses session value if present
 default_text = st.session_state.get('sample_url', 'https://www.wikipedia.org/')
+url = st.text_input(
+    "أدخل الرابط هنا:",
+    value=default_text,
+    placeholder="https://example.com/path?...",
+    key="url_input"
+)
 url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...", key="url_input")
 # ===== أمثلة جاهزة =====
 with st.sidebar:
