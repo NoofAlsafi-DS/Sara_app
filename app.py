@@ -60,12 +60,11 @@ def get_positive_prob(model, X):
         if np.ndim(val) == 1:
             return float(1.0 / (1.0 + np.exp(-val[0])))
     return None
-
 st.set_page_config(page_title="🔒 URL Malware Detector", page_icon="🛡️", layout="centered")
 st.title("🔒 URL Malware Detector")
 st.caption("تحليل الروابط لاكتشاف الروابط الضارة باستخدام TF-IDF + ميزات يدوية + نموذج مدرّب.")
 
-# Sidebar examples
+# الشريط الجانبي: أمثلة جاهزة
 with st.sidebar:
     st.subheader("أمثلة جاهزة")
     col_a, col_b = st.columns(2)
@@ -77,7 +76,7 @@ with st.sidebar:
             st.session_state['sample_url'] = "http://paypal.com.security-alert.example.com/confirm%20info"
     st.caption("اضغط زرًا لملء الحقل تلقائيًا.")
 
-# Default text uses session value if present
+# حقل الإدخال (واحد فقط) مع مفتاح فريد
 default_text = st.session_state.get('sample_url', 'https://www.wikipedia.org/')
 url = st.text_input(
     "أدخل الرابط هنا:",
@@ -85,17 +84,7 @@ url = st.text_input(
     placeholder="https://example.com/path?...",
     key="url_input"
 )
-url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...", key="url_input")
-# ===== أمثلة جاهزة =====
-with st.sidebar:
-    st.subheader("أمثلة جاهزة")
-    if st.button("🔗 مثال موقع سليم"):
-        st.session_state['sample_url'] = "https://www.wikipedia.org/"
-    if st.button("⚠️ مثال موقع ضار"):
-        st.session_state['sample_url'] = "http://paypal.com.security-alert.example.com/confirm%20info"
 
-default_text = st.session_state.get('sample_url', 'https://www.w# [removed duplicate] ikipedia.org/')url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example
-.com/path?...")
 
 if st.button("تحليل 🔍", type="primary") and url.strip():
     clf, tfidf, man = load_artifacts()
