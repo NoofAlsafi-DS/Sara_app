@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Auto-generated app with URLFeatureExtractor from the training notebook
+
 import os
 import pickle
 import numpy as np
@@ -60,8 +63,8 @@ def get_positive_prob(model, X):
             return float(1.0 / (1.0 + np.exp(-val[0])))
     return None
 
-st.set_page_config(page_title="🔒 URL Malware Detector", page_icon="🛡️", layout="centered")
-st.title("🔒 URL Malware Detector")
+st.set_page_config(page_title="🔒 الأمان الذكي", page_icon="🛡️", layout="centered")
+st.title("🔒 الأمان الذكي")
 st.caption("تحليل الروابط لاكتشاف الروابط الضارة باستخدام TF-IDF + ميزات يدوية + نموذج مدرّب.")
 
 default_text = st.session_state.get('sample_url', 'https://www.wikipedia.org/')
