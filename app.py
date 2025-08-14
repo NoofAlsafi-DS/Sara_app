@@ -1,12 +1,11 @@
-
-    import os
-    import re
-    import urllib.parse
-    import pickle
-    import numpy as np
-    import streamlit as st
-    from sklearn.base import BaseEstimator, TransformerMixin
-    from scipy.sparse import hstack
+import os
+import re
+import urllib.parse
+import pickle
+import numpy as np
+import streamlit as st
+from sklearn.base import BaseEstimator, TransformerMixin
+from scipy.sparse import hstack
 
     # ==============================
     # 1) ManualFeatures class (must match the name used when saving manual.pkl)
