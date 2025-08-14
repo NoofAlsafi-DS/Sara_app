@@ -60,9 +60,9 @@ def get_positive_prob(model, X):
         if np.ndim(val) == 1:
             return float(1.0 / (1.0 + np.exp(-val[0])))
     return None
-st.set_page_config(page_title="🔒 URL Malware Detector", page_icon="🛡️", layout="centered")
-st.title("🔒 URL Malware Detector")
-st.caption("تحليل الروابط لاكتشاف الروابط الضارة باستخدام TF-IDF + ميزات يدوية + نموذج مدرّب.")
+st.set_page_config(page_title="🔒 الأمان الذكي", page_icon="🛡️", layout="centered")
+st.title("🔒 الأمان الذكي")
+st.caption(" تطبيق يساعدك في اكتشاف الرواببط الضارة والروابط الموثوقة")
 
 # الشريط الجانبي: أمثلة جاهزة
 with st.sidebar:
