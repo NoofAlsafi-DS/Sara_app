@@ -65,7 +65,7 @@ def get_positive_prob(model, X):
 
 st.set_page_config(page_title="🔒 الأمان الذكي", page_icon="🛡️", layout="centered")
 st.title("🔒 الأمان الذكي")
-st.caption("هذا التطبيق يساعدك في التحقق من الرابط الضارة والروابط الموثوقة")
+st.caption("هذا التطبيق يساعدك في التحقق من الراوبط الضارة والروابط الموثوقة")
 
 default_text = st.session_state.get('sample_url', 'https://www.wikipedia.org/')
 url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...")
