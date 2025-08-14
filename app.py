@@ -38,6 +38,37 @@ class ManualFeatures(BaseEstimator, TransformerMixin):
 # ==============================
 # 2) Cached loaders for artifacts
 # ==============================
+# ⚠️ تعريف الكلاس المطلوب بنفس الاسم
+class URLFeatureExtractor:
+    def __init__(self):
+        pass
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        import numpy as np
+        import re, urllib.parse
+        feats = []
+        for url in X:
+            u = str(url or "")
+            p = urllib.parse.urlparse(u)
+            host = p.netloc or ""
+            path = p.path or ""
+            feats.append([
+                len(u),                                   # طول الرابط
+                u.count('-'),                             # عدد '-'
+                u.count('@'),                             # عدد '@'
+                u.count('?'),                             # عدد '?'
+                u.count('%'),                             # عدد '%'
+                u.count('.'),                             # عدد النقاط
+                sum(c.isdigit() for c in u),              # عدد الأرقام
+                1 if re.search(r'\d+\.\d+\.\d+\.\d+', host) else 0,  # وجود IP
+                1 if u.lower().startswith('https') else 0,           # HTTPS
+                len(path),                                # طول المسار
+            ])
+        return np.array(feats, dtype=float)
+
 @st.cache_resource(show_spinner=False)
 def load_artifacts():
     try:
