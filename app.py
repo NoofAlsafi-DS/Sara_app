@@ -79,8 +79,7 @@ with st.sidebar:
 
 # Default text uses session value if present
 default_text = st.session_state.get('sample_url', 'https://www.wikipedia.org/')
-url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...")
-
+url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...", key="url_input")
 # ===== أمثلة جاهزة =====
 with st.sidebar:
     st.subheader("أمثلة جاهزة")
@@ -89,8 +88,8 @@ with st.sidebar:
     if st.button("⚠️ مثال موقع ضار"):
         st.session_state['sample_url'] = "http://paypal.com.security-alert.example.com/confirm%20info"
 
-default_text = st.session_state.get('sample_url', 'https://www.wikipedia.org/')
-url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...")
+default_text = st.session_state.get('sample_url', 'https://www.w# [removed duplicate] ikipedia.org/')url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example
+.com/path?...")
 
 if st.button("تحليل 🔍", type="primary") and url.strip():
     clf, tfidf, man = load_artifacts()
