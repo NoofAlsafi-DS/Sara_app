@@ -1,110 +1,194 @@
-import streamlit as st
-import pickle
-from scipy.sparse import hstack
-from urllib.parse import urlparse
-from pathlib import Path
 
-st.set_page_config(page_title="URL Malware Detector", page_icon="🔒", layout="centered")
-st.title("🔒 URL Malware Detector")
+    import os
+    import re
+    import urllib.parse
+    import pickle
+    import numpy as np
+    import streamlit as st
+    from sklearn.base import BaseEstimator, TransformerMixin
+    from scipy.sparse import hstack
 
-# ====== تحميل النموذج والمحولات ======
-@st.cache_resource
-def load_artifacts():
-    clf = pickle.load(open("model.pkl","rb"))
-    tfidf = pickle.load(open("tfidf.pkl","rb"))
-    man = pickle.load(open("manual.pkl","rb"))
-    return clf, tfidf, man
+    # ==============================
+    # 1) ManualFeatures class (must match the name used when saving manual.pkl)
+    # ==============================
+    class ManualFeatures(BaseEstimator, TransformerMixin):
+        def fit(self, X, y=None):
+            return self
 
-clf, tfidf, man = load_artifacts()
+        def transform(self, X):
+            feats = []
+            for url in X:
+                u = str(url or "")
+                p = urllib.parse.urlparse(u)
+                host = p.netloc or ""
+                path = p.path or ""
+                feats.append([
+                    len(u),                                   # total length
+                    u.count('-'),                             # '-' count
+                    u.count('@'),                             # '@' count
+                    u.count('?'),                             # '?' count
+                    u.count('%'),                             # '%' count
+                    u.count('.'),                             # '.' count
+                    sum(c.isdigit() for c in u),              # digits count
+                    1 if re.search(r'\b\d+\.\d+\.\d+\.\d+\b', host) else 0,  # IP in domain
+                    1 if u.lower().startswith('https') else 0,                         # HTTPS flag
+                    len(path),                                # path length
+                ])
+            return np.array(feats, dtype=float)
 
-# ====== إعدادات الواجهة ======
-colA, colB = st.columns([2,1])
-with colB:
-    threshold = st.slider("عتبة الحكم على (ضار)", 0.5, 0.99, 0.9, 0.01)
-
-with colA:
-    url = st.text_input("أدخل الرابط هنا:", placeholder="https://example.com/login")
-
-# صور الحالة (ملفّات محلية اختيارية)
-MAL_IMG = Path("malicious.png")
-BEN_IMG = Path("benign.png")
-
-def show_status(label_str: str, prob: float):
-    """عرض صورة/رمز + معلومات النتيجة."""
-    col1, col2 = st.columns([1,2])
-    with col1:
-        if label_str == "ضار":
-            if MAL_IMG.exists():
-                st.image(str(MAL_IMG), use_container_width=True)
-            else:
-                st.markdown("### 🚨")
-        else:
-            if BEN_IMG.exists():
-                st.image(str(BEN_IMG), use_container_width=True)
-            else:
-                st.markdown("### 🛡️")
-    with col2:
-        st.markdown(f"### النتيجة: **{label_str}**")
-        if prob is not None:
-            st.metric("احتمال الضار (model)", f"{prob:.3f}")
-            st.caption(f"العتبة الحالية: {threshold:.2f} — إذا كان الاحتمال ≥ العتبة ➜ نصنّف «ضار»")
-
-# ====== زر أمثلة سريعة ======
-with st.expander("🧪 أمثلة سريعة"):
-    ex1, ex2, ex3, ex4 = st.columns(4)
-    if ex1.button("🎁 bit.ly/win-prize"):
-        url = "http://bit.ly/win-prize-now?ref=secure-login"
-    if ex2.button("🐙 GitHub"):
-        url = "https://github.com/pytorch/pytorch"
-    if ex3.button("🔑 IP/login.php"):
-        url = "http://192.168.1.44/login.php"
-    if ex4.button("🏫 University portal"):
-        url = "https://university.edu/portal"
-    if url:
-        st.info(f"المثال المختار: {url}")
-
-# ====== التنبؤ ======
-def predict_one(u: str, th: float):
-    Xt = tfidf.transform([u])
-    Xm = man.transform([u])
-    X = hstack([Xt, Xm])
-    proba = clf.predict_proba(X)[0][1] if hasattr(clf, "predict_proba") else None
-    # قرار باستخدام العتبة
-    if proba is not None:
-        pred = 1 if proba >= th else 0
-    else:
-        pred = clf.predict(X)[0]
-    return pred, proba
-
-go = st.button("تحليل")
-if go and url.strip():
-    # تطبيع بسيط
-    u = url.strip()
-    # تنبؤ
-    pred, prob = predict_one(u, threshold)
-    label_str = "ضار" if pred == 1 else "سليم"
-    show_status(label_str, prob)
-
-    # معلومات إضافية مفيدة للمستخدم
-    with st.container(border=True):
-        st.markdown("**تفاصيل الرابط**")
+    # ==============================
+    # 2) Cached loaders for artifacts
+    # ==============================
+    @st.cache_resource(show_spinner=False)
+    def load_artifacts():
         try:
-            p = urlparse(u)
-            st.write({"scheme": p.scheme, "netloc": p.netloc, "path": p.path, "query": p.query})
+            with open("model.pkl","rb") as f:
+                clf = pickle.load(f)
+            with open("tfidf.pkl","rb") as f:
+                tfidf = pickle.load(f)
+            with open("manual.pkl","rb") as f:
+                man = pickle.load(f)
+            return clf, tfidf, man
+        except Exception as e:
+            st.exception(e)
+            st.stop()
+
+    # Helper: safe probability extraction
+    def get_positive_prob(model, X):
+        # try predict_proba -> positive class prob as 1
+        if hasattr(model, "predict_proba"):
+            proba = model.predict_proba(X)
+            if proba is not None and proba.ndim == 2 and proba.shape[1] >= 2:
+                return float(proba[0, 1])
+        # try decision_function -> map to (0,1) via logistic
+        if hasattr(model, "decision_function"):
+            val = model.decision_function(X)
+            if np.ndim(val) == 1:
+                return float(1.0 / (1.0 + np.exp(-val[0])))
+        return None
+
+    # Helper: small feature preview for a single URL
+    def preview_manual_features(url: str):
+        u = str(url or "")
+        p = urllib.parse.urlparse(u)
+        host = p.netloc or ""
+        path = p.path or ""
+        return {
+            "length": len(u),
+            "dash_count": u.count('-'),
+            "at_count": u.count('@'),
+            "question_mark": u.count('?'),
+            "percent_count": u.count('%'),
+            "dot_count": u.count('.'),
+            "digits_count": sum(c.isdigit() for c in u),
+            "has_ip_in_domain": bool(re.search(r'\b\d+\.\d+\.\d+\.\d+\b', host)),
+            "is_https": u.lower().startswith('https'),
+            "path_length": len(path),
+        }
+
+    # ==============================
+    # 3) UI
+    # ==============================
+    st.set_page_config(page_title="🔒 URL Malware Detector", page_icon="🛡️", layout="centered")
+    st.title("🔒 URL Malware Detector")
+    st.caption("تحليل الروابط لاكتشاف الروابط الضارة باستخدام TF-IDF + ميزات يدوية + نموذج مدرّب.")
+
+    with st.sidebar:
+        st.markdown("## الإعدادات")
+        st.markdown("هذا التطبيق يحتاج الملفات: `model.pkl`, `tfidf.pkl`, `manual.pkl`.")
+        st.markdown("ضع صورتي `safe.png` و `malicious.png` اختياريًا لعرض صورة توضيحية للنتيجة.")
+        st.divider()
+        st.markdown("### أمثلة جاهزة")
+        examples_safe = [
+            "https://www.wikipedia.org/",
+            "https://www.openai.com/research/",
+        ]
+        examples_bad = [
+            "http://198.51.100.23/login/verify?acc=123",
+            "http://paypal.com.security-alert.example.com/confirm%20info",
+        ]
+        ex_col1, ex_col2 = st.columns(2)
+        with ex_col1:
+            if st.button("مثال سليم", use_container_width=True):
+                st.session_state['sample_url'] = examples_safe[0]
+        with ex_col2:
+            if st.button("مثال ضار", use_container_width=True):
+                st.session_state['sample_url'] = examples_bad[0]
+
+    default_text = st.session_state.get('sample_url', '')
+    url = st.text_input("أدخل الرابط هنا:", value=default_text, placeholder="https://example.com/path?...")
+
+    analyze = st.button("تحليل 🔍", type="primary")
+
+    if analyze and url.strip():
+        # Load artifacts
+        clf, tfidf, man = load_artifacts()
+
+        # Build feature vector
+        try:
+            X_tfidf = tfidf.transform([url])
+        except Exception as e:
+            st.error("تعذر تحويل الرابط باستخدام TF-IDF. تحقق من توافق نسخة scikit-learn/التوكنايزر.")
+            st.exception(e)
+            st.stop()
+
+        try:
+            X_manual = man.transform([url]) if hasattr(man, "transform") else ManualFeatures().transform([url])
         except Exception:
-            st.write("تعذّر تحليل الرابط.")
+            # fallback: try local ManualFeatures()
+            X_manual = ManualFeatures().transform([url])
 
-    # تحذير عملي في حالة السليم مع احتمال مرتفع
-    if prob is not None:
-        if label_str == "سليم" and prob >= (threshold - 0.05):
-            st.warning("الرابط صُنّف «سليم» لكن احتمال الضار قريب من العتبة. يُستحسن الحذر.")
+        try:
+            X = hstack([X_tfidf, X_manual])
+        except Exception as e:
+            st.error("تعذر دمج الميزات. تأكد من أشكال المصفوفات وحجمها.")
+            st.exception(e)
+            st.stop()
 
-# ====== ملاحظات ======
-st.caption("""
-**تلميح:** ضع ملفين صور في نفس مجلد التطبيق:
-- `malicious.png` لواجهة «ضار»
-- `benign.png` لواجهة «سليم»
+        # Predict
+        try:
+            pred = int(clf.predict(X)[0])
+        except Exception as e:
+            st.error("تعذر إجراء التنبؤ. تحقق من توافق النموذج مع الميزات.")
+            st.exception(e)
+            st.stop()
 
-إن لم توجد الصور، يستخدم التطبيق رموزًا بديلة (🚨 / 🛡️).
-يمكنك تغيير العتبة من الشريط للحصول على حساسية أعلى أو أقل.
-""")
+        prob = get_positive_prob(clf, X)
+
+        # Output
+        st.divider()
+        left, right = st.columns([1,1])
+
+        with left:
+            if pred == 1:
+                st.subheader("النتيجة: **ضار** ❌")
+                if os.path.exists("malicious.png"):
+                    st.image("malicious.png", caption="تحذير: رابط ضار", use_container_width=True)
+                else:
+                    st.warning("صورة 'malicious.png' غير موجودة. أضفها لاستخدام العرض المرئي.")
+            else:
+                st.subheader("النتيجة: **سليم** ✅")
+                if os.path.exists("safe.png"):
+                    st.image("safe.png", caption="رابط سليم", use_container_width=True)
+                else:
+                    st.info("صورة 'safe.png' غير موجودة. أضفها لاستخدام العرض المرئي.")
+
+            if prob is not None:
+                st.metric(label="درجة الثقة (احتمال الضار)", value=f"{prob:.3f}")
+            else:
+                st.caption("النموذج لا يدعم `predict_proba`، عُرضت النتيجة بدون درجة ثقة.")
+
+        with right:
+            st.markdown("#### معاينة بعض الميزات اليدوية")
+            feats = preview_manual_features(url)
+            st.dataframe({ "الميزة": list(feats.keys()), "القيمة": list(feats.values()) })
+
+        # Extra notes
+        with st.expander("تفاصيل تقنية"):
+            st.write("• تم استخدام ميزات TF‑IDF للنص الكامل للرابط + ميزات يدوية مثل الطول ووجود IP.
+"
+                     "• إذا تغيّرت نسخ المكتبات بين التدريب والتشغيل قد تظهر أخطاء توافق. ثبّت نفس النسخ في requirements.txt.")
+
+    st.markdown("---")
+    st.caption("© 2025 — تطبيق توضيحي لا يُعد أداة أمنية نهائية. استخدمه كإرشاد أولي فقط.")
+
